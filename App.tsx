@@ -4,9 +4,7 @@ import { View,Text, StyleSheet, TextInput, Image, TouchableOpacity, Dimensions, 
 const estilos=StyleSheet.create({
   contenedor:{
     width:'100%',
-
     padding:40,
-    
   },
   texto:{
     fontSize:50,
