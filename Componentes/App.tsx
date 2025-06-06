@@ -1,52 +1,49 @@
-import React from 'react';
-import { View,Text, TextInput, Image, TouchableOpacity, FlatList } from 'react-native';
-import estilos from './Style';
+import React from "react";
+import Inicio from './inicio';
+import Registro from "./registro";
+import Tareas from "./Tareas";
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from "@react-navigation/stack";
 
-const tasks = [{
-  titulo:'Estudiar',
-  done:false,
-  date:new Date(),
-},
-{
-  titulo:'Jugar',
-  done:false,
-  date:new Date(),
-},
-{
-  titulo:'Caminar',
-  done:false,
-  date:new Date(),
-},
-];
-interface Task{
-  titulo:string,
-  done:boolean,
-  date:Date
+export type RootList={
+  Inicio:undefined
+  Registro:undefined
+  Tareas:undefined
 }
-function renderItem({item}:{item:Task}){
-  return ( <View style={estilos.dataTasks}>
-    <Text style={estilos.letras}>{item.titulo}</Text>
-  </View>
-  );}
+
+const Ruta=createStackNavigator<RootList>();
+
 export default function App(){
   return(
-    <View style={estilos.contenedor}>
-      <Text style={estilos.texto}>Mis tareas</Text>
-      <View style={estilos.Ctareas}>
-        <TextInput placeholder="Escriba" style={estilos.input}/>
-        <TouchableOpacity style={estilos.boton}>
-          <Text style={estilos.letras}>
-            Agregar
-          </Text>
-        </TouchableOpacity>
-      </View>
-      <View>
-        <FlatList
-        renderItem={renderItem}
-        data={tasks}
-        />
-      </View>
-      <Image source={require('../img/emoji.jpg')} style={estilos.emoji}/>
-    </View>
+    <NavigationContainer>
+      <Ruta.Navigator
+      initialRouteName="Inicio"
+      screenOptions={{
+        headerStyle:{
+          backgroundColor:'red',
+        },
+        headerTintColor:'black',
+        headerTitleStyle:{
+          fontWeight:'bold',
+        },
+      }}
+      >
+      <Ruta.Screen
+      name="Inicio"
+      component={Inicio}
+      options={{title:'Frame de inicio'}}
+      />
+      <Ruta.Screen
+      name="Registro"
+      component={Registro}
+      options={{title:'Frame de registro'}}
+      />
+      <Ruta.Screen
+      name="Tareas"
+      component={Tareas}
+      options={{title:'Frame de tareas'}}
+      />
+      </Ruta.Navigator>
+    </NavigationContainer>
   );
 }
