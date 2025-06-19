@@ -5,20 +5,20 @@ import { Task } from './Tareas';
 
 interface ItemProps{
     item:Task
-    markDone:(task:Task)=>void
-    deleteF:(task:Task)=>void
+    markDone:()=>void
+    deleteF:()=>void
 }
 export default function RenderItem({item,markDone,deleteF}:ItemProps){
   return (
   <View style={estilos.dataTasks}>
-    <TouchableOpacity onPress={()=>markDone(item)}>
+    <TouchableOpacity onPress={markDone}>
     <Text style={item.done ? estilos.textDone:estilos.letras}>{item.titulo}</Text>
-    <Text style={estilos.letras}>{new Date(item.date).toDateString()}</Text>
+    <Text style={estilos.letras}>{item.date.toDateString()}</Text>
     </TouchableOpacity>
     {
       item.done &&
       (
-        <TouchableOpacity style={estilos.botonEliminar} onPress={()=>deleteF(item)}>
+        <TouchableOpacity style={estilos.botonEliminar} onPress={deleteF}>
           <Text style={estilos.BotonE}>Eliminar</Text>
         </TouchableOpacity>
       )

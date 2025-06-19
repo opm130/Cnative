@@ -1,8 +1,7 @@
-import React,{useState,useEffect}  from 'react';
+import React,{useState}  from 'react';
 import { View,Text, TextInput, Image, TouchableOpacity, FlatList } from 'react-native';
 import estilos from './Style';
 import RenderItem from './Funcional';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const tasks = [
 ];
@@ -15,30 +14,6 @@ export interface Task{
 export default function Tareas(){
   const [text,setText] = useState('');
   const [tasks,setTasks] = useState<Task[]>([])
-
-  const storeData=async (value:Task[])=>{
-    try{
-      await AsyncStorage.setItem('my-Todo',JSON.stringify(value))
-    }
-    catch(e){
-      
-    }
-  }
-  const getData= async()=>{
-    try{
-      const value= await AsyncStorage.getItem('my-Todo')
-      if(value !== null){
-        const Tlocals=JSON.parse(value)
-        setTasks(Tlocals)
-      }
-    }
-    catch(e){
-    
-    }
-  }
-  useEffect(()=>{
-    getData()
-  },[])
   const addTask=()=>{
     const tmp=[...tasks]
     const newTask={
@@ -48,24 +23,10 @@ export default function Tareas(){
     }
     tmp.push(newTask)
     setTasks(tmp)
-    storeData(tmp)
     setText('')
   }
-  const markDone = (task:Task)=>{
-    const tmp=[...tasks]
-    const index=tmp.findIndex(tu=>tu.titulo===task.titulo)
-    const hola=tmp[index]
-    hola.done=!hola.done
-    setTasks(tmp)
-    storeData(tmp)
-  };
-  const deleteF = (task:Task)=>{
-    const tmp=[...tasks]
-    const index=tmp.findIndex(tu=>tu.titulo===task.titulo)
-    tmp.splice(index,1);
-    setTasks(tmp)
-    storeData(tmp)
-  };
+  const markDone = ()=>{console.log('Marcado');};
+  const deleteF = ()=>{console.log('Borrado');};
   return(
     <View style={estilos.contenedor}>
       <Text style={estilos.texto}>Mis tareas</Text>
