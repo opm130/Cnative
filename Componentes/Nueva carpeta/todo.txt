@@ -1,0 +1,573 @@
+/*Tareas*/
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Image, TouchableOpacity, FlatList, Alert, Platform } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import estilos from './Style';
+import RenderItem from './Funcional';
+import NotificationService from './NotificationService';
+
+export interface Task {
+  id: string;
+  titulo: string;
+  done: boolean;
+  date: Date;
+  notificationScheduled: boolean; // Nuevo campo para rastrear si se programó notificación
+}
+
+export default function Tareas() {
+  const [text, setText] = useState('');
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  useEffect(() => {
+    // Configurar notificaciones al iniciar el componente
+    console.log('🔧 Inicializando servicio de notificaciones...');
+    NotificationService.createChannel();
+    NotificationService.checkPermissions();
+    
+    // Mostrar mensaje de bienvenida
+    setTimeout(() => {
+      Alert.alert(
+        '🔔 Notificaciones Configuradas',
+        'Las notificaciones están listas. Puedes probar con el botón "🔔 Probar Ahora".',
+        [{ text: 'Perfecto' }]
+      );
+    }, 1000);
+  }, []);
+
+  const addTask = () => {
+    if (text.trim() === '') {
+      Alert.alert('Error', 'Por favor ingresa una tarea');
+      return;
+    }
+
+    const now = new Date();
+    const isScheduledForFuture = selectedDate > now;
+    const timeDiff = selectedDate.getTime() - now.getTime();
+    const minutesFromNow = Math.round(timeDiff / (1000 * 60));
+
+    const tmp = [...tasks];
+    const newTask: Task = {
+      id: Date.now().toString(),
+      titulo: text.trim(),
+      done: false,
+      date: selectedDate,
+      notificationScheduled: false
+    };
+
+    // Programar notificación si es para el futuro
+    if (isScheduledForFuture) {
+      const success = NotificationService.scheduleNotification(
+        newTask.id,
+        newTask.titulo,
+        selectedDate
+      );
+      
+      if (success) {
+        newTask.notificationScheduled = true;
+        Alert.alert(
+          '✅ Tarea Programada',
+          `Tarea "${text.trim()}" programada para ${formatDateTime(selectedDate)}.\n\n⏰ Recibirás una notificación en ${minutesFromNow} minutos.`,
+          [{ text: 'Entendido' }]
+        );
+      } else {
+        Alert.alert(
+          '⚠️ Error',
+          'La tarea se agregó pero no se pudo programar la notificación.',
+          [{ text: 'Entendido' }]
+        );
+      }
+    } else {
+      Alert.alert(
+        '📅 Fecha Pasada',
+        'La fecha seleccionada ya pasó. La tarea se agregará como vencida.',
+        [{ text: 'Entendido' }]
+      );
+    }
+
+    tmp.push(newTask);
+    setTasks(tmp);
+    setText('');
+    setSelectedDate(new Date());
+  };
+
+  const markDone = (task: Task) => {
+    const tmp = [...tasks];
+    const index = tmp.findIndex(t => t.id === task.id);
+    if (index !== -1) {
+      tmp[index].done = !tmp[index].done;
+      
+      // Si se marca como completada, cancelar la notificación
+      if (tmp[index].done && tmp[index].notificationScheduled) {
+        NotificationService.cancelNotification(task.id);
+        tmp[index].notificationScheduled = false;
+        
+        // Mostrar notificación de felicitación
+        NotificationService.showImmediateNotification(
+          '🎉 ¡Tarea Completada!',
+          `Has completado: ${task.titulo}`
+        );
+      }
+      // Si se desmarca como completada y la fecha es futura, reprogramar
+      else if (!tmp[index].done && task.date > new Date()) {
+        NotificationService.scheduleNotification(
+          task.id,
+          task.titulo,
+          task.date
+        );
+        tmp[index].notificationScheduled = true;
+      }
+      
+      setTasks(tmp);
+    }
+  };
+
+  const deleteTask = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    
+    Alert.alert(
+      'Confirmar eliminación',
+      '¿Estás seguro de que quieres eliminar esta tarea?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            // Cancelar notificación antes de eliminar
+            if (task?.notificationScheduled) {
+              NotificationService.cancelNotification(taskId);
+            }
+            
+            const tmp = tasks.filter(task => task.id !== taskId);
+            setTasks(tmp);
+          }
+        }
+      ]
+    );
+  };
+
+  const onDateChange = (event: any, date?: Date) => {
+    setShowDatePicker(false);
+    if (date) {
+      setSelectedDate(date);
+    }
+  };
+
+  const onTimeChange = (event: any, time?: Date) => {
+    setShowTimePicker(false);
+    if (time) {
+      const newDateTime = new Date(selectedDate);
+      newDateTime.setHours(time.getHours());
+      newDateTime.setMinutes(time.getMinutes());
+      setSelectedDate(newDateTime);
+    }
+  };
+
+  const formatDateTime = (date: Date) => {
+    return date.toLocaleString('es-ES', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Función para probar notificaciones
+  const testNotification = () => {
+    console.log('🧪 Probando notificación...');
+    NotificationService.showImmediateNotification(
+      '🧪 Prueba de Notificación',
+      'Si ves esto, las notificaciones funcionan correctamente'
+    );
+  };
+
+  // Función para crear tarea de prueba (1 minuto en el futuro)
+  const createTestTask = () => {
+    const testDate = new Date();
+    testDate.setMinutes(testDate.getMinutes() + 1); // 1 minuto en el futuro
+    
+    const testTask: Task = {
+      id: `test-${Date.now()}`,
+      titulo: '🧪 Tarea de Prueba (1 min)',
+      done: false,
+      date: testDate,
+      notificationScheduled: false
+    };
+
+    const success = NotificationService.scheduleNotification(
+      testTask.id,
+      testTask.titulo,
+      testDate
+    );
+
+    if (success) {
+      testTask.notificationScheduled = true;
+      setTasks(prev => [...prev, testTask]);
+      
+      Alert.alert(
+        '🧪 Tarea de Prueba Creada',
+        `Se creó una tarea que sonará en 1 minuto (${formatDateTime(testDate)}).\n\n¡Espera a ver si funciona!`,
+        [{ text: 'Perfecto' }]
+      );
+    }
+  };
+
+  // Función para ver notificaciones programadas
+  const checkScheduledNotifications = () => {
+    NotificationService.getScheduledNotifications();
+  };
+
+  return (
+    <View style={estilos.contenedor}>
+      <Text style={estilos.texto}>Mis Tareas</Text>
+      
+      <View style={estilos.Ctareas}>
+        <TextInput 
+          placeholder="Escriba su tarea" 
+          style={estilos.input} 
+          value={text} 
+          onChangeText={(t: string) => setText(t)}
+          multiline={true}
+          numberOfLines={2}
+        />
+        
+        <View style={estilos.dateTimeContainer}>
+          <TouchableOpacity 
+            style={estilos.dateButton}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Text style={estilos.dateButtonText}>📅 Fecha</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={estilos.dateButton}
+            onPress={() => setShowTimePicker(true)}
+          >
+            <Text style={estilos.dateButtonText}>🕐 Hora</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={estilos.selectedDateTime}>
+          Programado para: {formatDateTime(selectedDate)}
+        </Text>
+
+        <TouchableOpacity 
+          style={estilos.boton}
+          onPress={addTask}
+        >
+          <Text style={estilos.letras}>Agregar Tarea</Text>
+        </TouchableOpacity>
+
+        {/* Botones de prueba para notificaciones */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
+          <TouchableOpacity 
+            style={[estilos.boton, { backgroundColor: '#4CAF50', flex: 1, marginRight: 5 }]}
+            onPress={testNotification}
+          >
+            <Text style={[estilos.letras, { fontSize: 12 }]}>🔔 Probar Ahora</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[estilos.boton, { backgroundColor: '#FF9800', flex: 1, marginHorizontal: 5 }]}
+            onPress={createTestTask}
+          >
+            <Text style={[estilos.letras, { fontSize: 12 }]}>⏰ Prueba 1min</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[estilos.boton, { backgroundColor: '#2196F3', flex: 1, marginLeft: 5 }]}
+            onPress={checkScheduledNotifications}
+          >
+            <Text style={[estilos.letras, { fontSize: 12 }]}>📋 Ver Lista</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={estilos.taskListContainer}>
+        <FlatList
+          data={tasks}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <RenderItem
+              item={item}
+              markDone={markDone}
+              deleteF={() => deleteTask(item.id)}
+            />
+          )}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={selectedDate}
+          mode="date"
+          display="default"
+          onChange={onDateChange}
+          minimumDate={new Date()}
+        />
+      )}
+
+      {showTimePicker && (
+        <DateTimePicker
+          value={selectedDate}
+          mode="time"
+          display="default"
+          onChange={onTimeChange}
+          is24Hour={true}
+        />
+      )}
+
+      <Image source={require('../img/emoji.jpg')} style={estilos.emoji} />
+    </View>
+  );
+}
+
+/*Funcional*/
+import React from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
+import estilos from './Style';
+import { Task } from './Tareas';
+
+interface ItemProps {
+  item: Task;
+  markDone: (task: Task) => void;
+  deleteF: () => void;
+}
+
+export default function RenderItem({ item, markDone, deleteF }: ItemProps) {
+  const formatDateTime = (date: Date) => {
+    return date.toLocaleString('es-ES', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const isOverdue = () => {
+    return new Date() > item.date && !item.done;
+  };
+
+  const getStatusText = () => {
+    if (item.done) return '✅ Completada';
+    if (isOverdue()) return '⏰ Vencida';
+    return '⏳ Pendiente';
+  };
+
+  const getStatusStyle = () => {
+    if (item.done) return estilos.statusCompleted;
+    if (isOverdue()) return estilos.statusOverdue;
+    return estilos.statusPending;
+  };
+
+  return (
+    <View style={[estilos.dataTasks, isOverdue() && estilos.overdueTask]}>
+      <TouchableOpacity 
+        style={estilos.taskContent}
+        onPress={() => markDone(item)}
+      >
+        <Text style={item.done ? estilos.textDone : estilos.letras}>
+          {item.titulo}
+        </Text>
+        
+        <Text style={estilos.dateText}>
+          📅 {formatDateTime(item.date)}
+        </Text>
+        
+        <Text style={[estilos.statusText, getStatusStyle()]}>
+          {getStatusText()}
+        </Text>
+      </TouchableOpacity>
+      
+      {item.done && (
+        <TouchableOpacity 
+          style={estilos.botonEliminar} 
+          onPress={deleteF}
+        >
+          <Text style={estilos.BotonE}>🗑️ Eliminar</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+/*Style*/
+import { StyleSheet } from 'react-native';
+
+const estilos = StyleSheet.create({
+  contenedor: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 20,
+    paddingTop: 50,
+  },
+  
+  texto: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: '#333',
+    marginBottom: 30,
+  },
+  
+  Ctareas: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 15,
+    fontSize: 16,
+    marginBottom: 15,
+    backgroundColor: '#f9f9f9',
+    minHeight: 50,
+  },
+  
+  // Nuevos estilos para selector de fecha y hora
+  dateTimeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  
+  dateButton: {
+    flex: 1,
+    backgroundColor: '#007AFF',
+    borderRadius: 10,
+    padding: 12,
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  
+  dateButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  
+  selectedDateTime: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 15,
+    fontWeight: '500',
+  },
+  
+  boton: {
+    backgroundColor: '#28a745',
+    borderRadius: 10,
+    padding: 15,
+    alignItems: 'center',
+  },
+  
+  letras: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  
+  // Estilos para la lista de tareas
+  taskListContainer: {
+    flex: 1,
+    marginBottom: 20,
+  },
+  
+  dataTasks: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  
+  overdueTask: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#dc3545',
+  },
+  
+  taskContent: {
+    flex: 1,
+  },
+  
+  textDone: {
+    fontSize: 18,
+    textDecorationLine: 'line-through',
+    color: '#999',
+    marginBottom: 5,
+  },
+  
+  dateText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
+  },
+  
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  
+  statusCompleted: {
+    color: '#28a745',
+  },
+  
+  statusPending: {
+    color: '#007AFF',
+  },
+  
+  statusOverdue: {
+    color: '#dc3545',
+  },
+  
+  botonEliminar: {
+    backgroundColor: '#dc3545',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginLeft: 10,
+  },
+  
+  BotonE: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  
+  emoji: {
+    width: 50,
+    height: 50,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+});
+
+export default estilos;
