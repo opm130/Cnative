@@ -1,7 +1,15 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import estilos from './Style';
-import { Task } from './Tareas';
+
+// Actualizada la interfase Task
+export interface Task {
+  id: string;
+  titulo: string;
+  done: boolean;
+  date: Date;
+  notificationId?: number;
+}
 
 interface ItemProps {
   item: Task;
@@ -53,6 +61,13 @@ export default function RenderItem({ item, markDone, deleteF }: ItemProps) {
         <Text style={[estilos.statusText, getStatusStyle()]}>
           {getStatusText()}
         </Text>
+
+        {/* Indicador de notificación programada */}
+        {!item.done && item.date > new Date() && (
+          <Text style={estilos.notificationIndicator}>
+            🔔 Notificación programada
+          </Text>
+        )}
       </TouchableOpacity>
       
       {item.done && (

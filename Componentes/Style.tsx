@@ -61,7 +61,7 @@ const estilos = StyleSheet.create({
     width: '100%',
   },
 
-  // Nuevos estilos para selectores de fecha y hora
+  // Estilos para selectores de fecha y hora
   dateTimeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -118,6 +118,7 @@ const estilos = StyleSheet.create({
   overdueTask: {
     borderLeftWidth: 4,
     borderLeftColor: '#dc3545',
+    backgroundColor: '#ffebee', // Fondo ligeramente rojizo para tareas vencidas
   },
   
   taskContent: {
@@ -152,6 +153,15 @@ const estilos = StyleSheet.create({
     fontSize: 25,
     color: '#6f6f6f',
     textDecorationLine: 'line-through',
+  },
+  
+  // NUEVO: Estilo para el indicador de notificación
+  notificationIndicator: {
+    fontSize: 12,
+    color: '#007AFF',
+    fontStyle: 'italic',
+    marginTop: 4,
+    fontWeight: '500',
   },
   
   botonEliminar: {
