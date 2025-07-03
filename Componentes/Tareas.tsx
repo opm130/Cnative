@@ -25,7 +25,7 @@ export default function Tareas() {
   useEffect(() => {
     // Configuración inicial de notificaciones
     PushNotification.configure({
-      onNotification: function(notification) {
+      onNotification: function(notification:any) {
         console.log('NOTIFICATION:', notification);
         
         // Cuando se recibe una notificación, actualizar el estado de las tareas
@@ -47,7 +47,7 @@ export default function Tareas() {
         importance: 4,
         vibrate: true,
       },
-      (created) => console.log(`Canal creado: ${created}`)
+      (created:boolean) => console.log(`Canal ${created ? 'creado' : 'ya existía o falló al crearse'}`)
     );
 
     getData();
@@ -139,7 +139,7 @@ export default function Tareas() {
 
   // Cancelar notificación
   const cancelNotification = (notificationId: number) => {
-    PushNotification.cancelLocalNotifications({ id: notificationId.toString() });
+    PushNotification.cancelLocalNotification({ id: notificationId.toString() });
   };
 
   // Generar ID único para tareas
