@@ -27,7 +27,6 @@ export default function Tareas() {
     PushNotification.configure({
       onNotification: function(notification:any) {
         console.log('NOTIFICATION:', notification);
-        
         // Cuando se recibe una notificación, actualizar el estado de las tareas
         if (notification.data && notification.data.taskId) {
           checkAndUpdateOverdueTasks();
@@ -39,11 +38,11 @@ export default function Tareas() {
     // Crear canal de notificación para Android
     PushNotification.createChannel(
       {
-        channelId: "task-reminders",
-        channelName: "Recordatorios de Tareas",
-        channelDescription: "Notificaciones para tareas programadas",
+        channelId: 'task-reminders',
+        channelName: 'Recordatorios de Tareas',
+        channelDescription: 'Notificaciones para tareas programadas',
         playSound: true,
-        soundName: "default",
+        soundName: 'default',
         importance: 4,
         vibrate: true,
       },
@@ -60,7 +59,6 @@ export default function Tareas() {
     };
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
-    
     return () => {
       subscription?.remove();
     };
@@ -74,9 +72,9 @@ export default function Tareas() {
         const storedTasks = JSON.parse(value);
         const tasksWithDates = storedTasks.map((task: any) => ({
           ...task,
-          date: new Date(task.date)
+          date: new Date(task.date),
         }));
-        
+
         // Forzar re-render para actualizar estados
         setTasks([...tasksWithDates]);
       }
@@ -100,7 +98,7 @@ export default function Tareas() {
         const Tlocals = JSON.parse(value);
         const tasksWithDates = Tlocals.map((task: any) => ({
           ...task,
-          date: new Date(task.date)
+          date: new Date(task.date),
         }));
         setTasks(tasksWithDates);
       }
@@ -117,16 +115,16 @@ export default function Tareas() {
     // Solo programar si la fecha es futura
     if (taskDate > now) {
       const notificationId = Math.floor(Math.random() * 1000000); // ID único
-      
+
       PushNotification.localNotificationSchedule({
         id: notificationId,
-        channelId: "task-reminders",
-        title: "⏰ Recordatorio de Tarea",
+        channelId: 'task-reminders',
+        title: '⏰ Recordatorio de Tarea',
         message: `Es hora de: ${task.titulo}`,
         date: taskDate,
         data: {
           taskId: task.id,
-          taskTitle: task.titulo
+          taskTitle: task.titulo,
         },
         allowWhileIdle: true,
         repeatType: undefined,
@@ -159,7 +157,7 @@ export default function Tareas() {
       id: taskId,
       titulo: text.trim(),
       done: false,
-      date: selectedDate
+      date: selectedDate,
     };
 
     // Programar notificación
@@ -177,7 +175,7 @@ export default function Tareas() {
     // Mostrar confirmación
     if (notificationId) {
       Alert.alert(
-        'Tarea Agregada', 
+        'Tarea Agregada',
         `La tarea "${newTask.titulo}" ha sido programada para ${formatDateTime(selectedDate)}`
       );
     }
@@ -188,7 +186,7 @@ export default function Tareas() {
     const index = tmp.findIndex(tu => tu.id === task.id);
     if (index !== -1) {
       tmp[index].done = !tmp[index].done;
-      
+
       // Si se marca como completada, cancelar la notificación
       if (tmp[index].done && tmp[index].notificationId) {
         cancelNotification(tmp[index].notificationId);
@@ -200,7 +198,7 @@ export default function Tareas() {
           tmp[index].notificationId = notificationId;
         }
       }
-      
+
       setTasks(tmp);
       storeData(tmp);
     }
@@ -223,13 +221,12 @@ export default function Tareas() {
               if (task.notificationId) {
                 cancelNotification(task.notificationId);
               }
-              
               tmp.splice(index, 1);
               setTasks(tmp);
               storeData(tmp);
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -257,32 +254,32 @@ export default function Tareas() {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
   // Función para testear notificaciones (opcional)
   const testNotification = () => {
     PushNotification.localNotification({
-      channelId: "task-reminders",
-      title: "🧪 Prueba de Notificación",
-      message: "Las notificaciones están funcionando correctamente",
+      channelId: 'task-reminders',
+      title: '🧪 Prueba de Notificación',
+      message: 'Las notificaciones están funcionando correctamente',
     });
   };
 
   return (
     <View style={estilos.contenedor}>
       <Text style={estilos.texto}>Mis Tareas</Text>
-      
+
       <View style={estilos.Ctareas}>
-        <TextInput 
-          placeholder="Escriba su tarea" 
-          style={estilos.input} 
-          value={text} 
+        <TextInput
+          placeholder="Escriba su tarea"
+          style={estilos.input}
+          value={text}
           onChangeText={(t: string) => setText(t)}
         />
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={estilos.boton}
           onPress={addTask}
         >
@@ -292,14 +289,14 @@ export default function Tareas() {
 
       {/* Selectores de fecha y hora */}
       <View style={estilos.dateTimeContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={estilos.dateButton}
           onPress={() => setShowDatePicker(true)}
         >
           <Text style={estilos.dateButtonText}>📅 Fecha</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={estilos.dateButton}
           onPress={() => setShowTimePicker(true)}
         >
@@ -312,7 +309,8 @@ export default function Tareas() {
       </Text>
 
       {/* Botón de prueba (opcional, puedes eliminarlo después) */}
-      <TouchableOpacity 
+      <TouchableOpacity
+        // eslint-disable-next-line react-native/no-inline-styles
         style={[estilos.boton, { backgroundColor: '#2196F3', marginVertical: 10 }]}
         onPress={testNotification}
       >
